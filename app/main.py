@@ -62,20 +62,20 @@ def _run_alembic_upgrade(connection, alembic_cfg) -> None:
 
 async def on_startup(bot: Bot) -> None:
     """Run on bot startup — initialize DB, Redis, run migrations."""
-    log = structlog.get_logger()
+    print("[STARTUP] on_startup begin", flush=True)
 
     # Initialize Redis
     redis = await get_redis()
     await redis.ping()
-    log.info("redis_connected")
+    print("[STARTUP] Redis connected", flush=True)
 
     # Verify database connection
     async with engine.begin() as conn:
         await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
-    log.info("database_connected")
+    print("[STARTUP] Database connected", flush=True)
 
     # Run Alembic migrations (async-safe — avoids nested asyncio.run)
-    log.info("running_migrations")
+    print("[STARTUP] Running migrations...", flush=True)
     from alembic.config import Config
 
     alembic_cfg = Config("alembic.ini")
@@ -85,7 +85,7 @@ async def on_startup(bot: Bot) -> None:
         await conn.run_sync(
             lambda sync_conn: _run_alembic_upgrade(sync_conn, alembic_cfg)
         )
-    log.info("migrations_complete")
+    print("[STARTUP] Migrations complete", flush=True)
 
     # Seed default categories if empty
     from scripts.seed_categories import seed as seed_categories
@@ -95,7 +95,7 @@ async def on_startup(bot: Bot) -> None:
     await seed_currencies()
 
     me = await bot.get_me()
-    log.info("bot_started", username=me.username, bot_id=me.id)
+    print(f"[STARTUP] Bot started: @{me.username} (id={me.id})", flush=True)
 
 
 async def on_shutdown(bot: Bot) -> None:
@@ -176,7 +176,7 @@ async def main() -> None:
         # Keep running
         await asyncio.Event().wait()
     else:
-        log.info("starting_polling")
+        print("[MAIN] Starting polling...", flush=True)
         await dp.start_polling(bot)
 
 

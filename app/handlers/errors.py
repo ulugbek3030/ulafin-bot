@@ -14,6 +14,12 @@ router = Router()
 @router.errors()
 async def global_error_handler(event: ErrorEvent) -> bool:
     """Catch-all error handler — log and notify user."""
+    import traceback
+
+    print(f"[ERROR] {event.exception}", flush=True)
+    traceback.print_exception(
+        type(event.exception), event.exception, event.exception.__traceback__
+    )
     log.error(
         "unhandled_error",
         error=str(event.exception),
