@@ -1,0 +1,17 @@
+# Dev overrides: polling mode, live reload, debug logging
+services:
+  bot:
+    build: .
+    command: python -m app.main
+    env_file: .env
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: DEBUG
+    volumes:
+      - .:/app
+      - bot-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
