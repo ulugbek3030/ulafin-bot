@@ -52,6 +52,14 @@ def setup_logging(log_level: str) -> None:
     )
 
 
+def _run_alembic_upgrade(connection, alembic_cfg) -> None:
+    """Synchronous helper to run Alembic migrations within run_sync()."""
+    from alembic import command
+
+    alembic_cfg.attributes["connection"] = connection
+    command.upgrade(alembic_cfg, "head")
+
+
 async def on_startup(bot: Bot) -> None:
     """Run on bot startup — initialize DB, Redis, run migrations."""
     log = structlog.get_logger()
@@ -66,13 +74,17 @@ async def on_startup(bot: Bot) -> None:
         await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
     log.info("database_connected")
 
-    # Run Alembic migrations
+    # Run Alembic migrations (async-safe — avoids nested asyncio.run)
     log.info("running_migrations")
-    from alembic import command
     from alembic.config import Config
 
     alembic_cfg = Config("alembic.ini")
-    command.upgrade(alembic_cfg, "head")
+
+    # Run migrations using an existing async connection passed into env.py
+    async with engine.begin() as conn:
+        await conn.run_sync(
+            lambda sync_conn: _run_alembic_upgrade(sync_conn, alembic_cfg)
+        )
     log.info("migrations_complete")
 
     # Seed default categories if empty

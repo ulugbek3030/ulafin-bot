@@ -64,7 +64,19 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode."""
+    """Run migrations in 'online' mode.
+
+    Supports two modes:
+    1. Called from main.py via run_sync() — connection is passed in config.attributes
+    2. Called from CLI (alembic upgrade head) — creates its own async engine
+    """
+    # If a connection was passed (from main.py on_startup), use it directly
+    connectable = config.attributes.get("connection", None)
+    if connectable is not None:
+        do_run_migrations(connectable)
+        return
+
+    # Otherwise, we're running from the CLI — use asyncio.run
     asyncio.run(run_async_migrations())
 
 
