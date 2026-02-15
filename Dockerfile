@@ -11,9 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install Python deps
-COPY pyproject.toml .
-RUN pip install --no-cache-dir . && pip cache purge
+# Install Python deps from requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && pip cache purge
 
 # Copy app code
 COPY . .
